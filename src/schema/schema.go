@@ -1,6 +1,8 @@
 package schema
 
-import "reflect"
+import (
+	"reflect"
+)
 
 type Field struct {
 	Name             string
@@ -17,5 +19,3 @@ type Model struct {
 	Table  string
 	Fields []Field
 }
-
-func Parse(v any) (*Model, error)
