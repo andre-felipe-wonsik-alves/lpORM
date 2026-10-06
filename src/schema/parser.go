@@ -13,9 +13,7 @@ Lê os marcadores e devolve um Model com os metadados.
 */
 func Parse(v any) (*Model, error) {
 	t := reflect.TypeOf(v)
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
+
 	if t.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("lporm: Parse espera uma struct, recebeu %s", t.Kind())
 	}

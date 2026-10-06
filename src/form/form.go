@@ -33,11 +33,9 @@ func (f *Form) Render() template.HTML {
 	var buf strings.Builder
 	buf.WriteString(fmt.Sprintf(`<form action="%s" method="%s">`, f.action, f.method))
 	for _, field := range f.Model.Fields {
-		if field.Form == nil {
-			continue
-		}
 
 		w := resolveWidget(field)
+
 		if w == nil {
 			continue // widget ainda não implementado
 		}
