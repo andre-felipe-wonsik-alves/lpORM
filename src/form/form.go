@@ -31,7 +31,7 @@ func New(model any, opts ...any) (*Form, error) {
 
 func (f *Form) Render() template.HTML {
 	var buf strings.Builder
-	buf.WriteString(fmt.Sprintf(`<form action="%s" method="%s">`, f.action, f.method))
+	fmt.Fprintf(&buf, `<form action="%s" method="%s">`, f.action, f.method)
 	for _, field := range f.Model.Fields {
 
 		w := resolveWidget(field)
@@ -46,23 +46,21 @@ func (f *Form) Render() template.HTML {
 		}
 		buf.WriteString(string(w.Render(field.Name, label, f.Values[field.Name], f.Errors[field.Name])))
 	}
-	buf.WriteString(fmt.Sprintf(`<button type="submit">%s</button></form>`, f.submitLabel))
+	fmt.Fprintf(&buf, `<button type="submit">%s</button></form>`, f.submitLabel)
 	return template.HTML(buf.String())
 }
 
 func resolveWidget(f schema.Field) widgets.Widgets {
 	switch f.Form["type"] {
 	case "checkbox":
-		//TODO return widgets.CheckboxInput{}
-		println("Checkbox não implementada!")
-		return nil
+		println("[*] Processando input do tipo checkbox")
+		return widgets.CheckboxInput{InputType: f.Form["type"]}
 	case "select":
-		//TODO opts := strings.Split(f.Form["options"], ",")
-		//TODO return widgets.SelectInput{Options: opts}
-		println("Select não implementado!")
+		// TODO return widgets.SelectInput{Options: opts}
+		println("[!] Select não implementado!")
 		return nil
 	default:
-		print("Input do tipo texto")
+		println("[*] Processando input do tipo texto")
 		return widgets.TextInput{InputType: f.Form["type"]}
 	}
 }

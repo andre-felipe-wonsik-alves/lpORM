@@ -24,7 +24,7 @@ func main() {
 		fmt.Printf("  Rules:  %v\n\n", f.Rules)
 	}
 
-	formmmm, err := form.New(input.Cliente{})
+	formmmm, _ := form.New(input.Cliente{})
 
 	html := formmmm.Render()
 	fmt.Printf("\nHTML de saída:\n%s\n", html)
