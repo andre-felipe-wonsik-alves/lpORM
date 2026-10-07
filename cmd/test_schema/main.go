@@ -42,6 +42,12 @@ func main() {
 		</body>
 	</html>`
 
+	outputDir := "./out"
+
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
+		log.Fatalf("Erro ao criar o diretório: %v", err)
+	}
+
 	err = os.WriteFile("./out/FORM.html", []byte(htmlCompleto), 0o644)
 	if err != nil {
 		log.Fatal(err)
