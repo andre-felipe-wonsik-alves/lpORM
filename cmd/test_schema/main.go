@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/andre-felipe-wonsik-alves/lpORM/input"
 	"github.com/andre-felipe-wonsik-alves/lpORM/src/form"
@@ -26,6 +28,24 @@ func main() {
 
 	formmmm, _ := form.New(input.Cliente{})
 
-	html := formmmm.Render()
-	fmt.Printf("\nHTML de saída:\n%s\n", html)
+	html := form_gerado.Render()
+	htmlCompleto := `
+	<!DOCTYPE html>
+		<html lang="pt-BR">
+		<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<title>Minha página</title>
+		</head>
+		<body>
+		` + html + `
+		</body>
+	</html>`
+
+	err = os.WriteFile("./out/FORM.html", []byte(htmlCompleto), 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Arquivo gerado com sucesso!\n")
 }
