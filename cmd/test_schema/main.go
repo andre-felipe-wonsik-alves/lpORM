@@ -26,7 +26,7 @@ func main() {
 		fmt.Printf("  Rules:  %v\n\n", f.Rules)
 	}
 
-	formmmm, _ := form.New(input.Cliente{})
+	form_gerado, _ := form.New(input.Cliente{})
 
 	html := form_gerado.Render()
 	htmlCompleto := `
@@ -42,7 +42,7 @@ func main() {
 		</body>
 	</html>`
 
-	err = os.WriteFile("./out/FORM.html", []byte(htmlCompleto), 0644)
+	err = os.WriteFile("./out/FORM.html", []byte(htmlCompleto), 0o644)
 	if err != nil {
 		log.Fatal(err)
 	}
