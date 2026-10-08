@@ -14,24 +14,19 @@ type Form struct {
 	Values map[string]any
 	Errors map[string][]string
 
-	action      string
-	method      string
-	submitLabel string
+	action string
+	method string
 }
 
-func New(model any, opts ...any) (*Form, error) {
-	m, err := schema.Parse(model)
-	if err != nil {
-		return nil, err
-	}
-	f := &Form{Model: m, Values: map[string]any{}, Errors: map[string][]string{}}
+func New(model *schema.Model, opts ...any) (*Form, error) {
+	f := &Form{Model: model, Values: map[string]any{}, Errors: map[string][]string{}}
 
 	return f, nil
 }
 
 func (f *Form) Render() template.HTML {
 	var buf strings.Builder
-	fmt.Fprintf(&buf, `<form action="%s" method="%s">`, f.action, f.method)
+	fmt.Fprintf(&buf, `<h3>%s</h3><form action="%s" method="%s">`, f.Model.Name, f.action, f.method)
 	for _, field := range f.Model.Fields {
 
 		w := resolveWidget(field)
@@ -46,7 +41,10 @@ func (f *Form) Render() template.HTML {
 		}
 		buf.WriteString(string(w.Render(field.Name, label, f.Values[field.Name], f.Errors[field.Name])))
 	}
-	fmt.Fprintf(&buf, `<button type="submit">%s</button></form>`, f.submitLabel)
+
+	submit := "Enviar"
+
+	fmt.Fprintf(&buf, `<button type="submit">%s</button></form><hr>`, submit)
 	return template.HTML(buf.String())
 }
 

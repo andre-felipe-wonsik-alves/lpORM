@@ -9,7 +9,3 @@ func WithAction(action string) Option {
 func WithMethod(method string) Option {
 	return func(f *Form) { f.method = method }
 }
-
-func WithSubmitLabel(label string) Option {
-	return func(f *Form) { f.submitLabel = label }
-}
