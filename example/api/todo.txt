@@ -1,0 +1,7 @@
+Precisamos de um API para testes aqui.
+
+endpoints:
+    INSERT model:
+        - recebe aquela chamada HTTP do JS no HTML e executa um insert no banco usando o lpORM
+        - endpoint genérico, se possível.
+            - (recebe um model.Schema e manipula ele por lá)

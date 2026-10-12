@@ -11,13 +11,6 @@ func main() {
 		input.Job{},
 	}
 
-	//cfg := pq.Config{
-	//	Host:           "localhost",
-	//	Port:           5432,
-	//	User:           "pqgo",
-	//	ConnectTimeout: 5 * time.Second,
-	//}
-
 	a := &assembler.Assembler{}
 	a.New(modelsList, "localhost", "appdb")
 	a.Assemble()
