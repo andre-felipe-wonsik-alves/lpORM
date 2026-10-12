@@ -1,6 +1,8 @@
 package widgets
 
 import (
+	"fmt"
+	"html"
 	"html/template"
 	"strings"
 )
@@ -16,7 +18,7 @@ type Option struct {
 }
 
 // ParseOptions converte uma string de opções como "PR,SP,SC" ou "M:Masculino,F:Feminino"
-// em uma lista de structs Option.
+// em uma lista de structs Option
 func ParseOptions(raw string) []Option {
 	if raw == "" {
 		return nil
@@ -46,3 +48,19 @@ func ParseOptions(raw string) []Option {
 	return options
 }
 
+// errorsHTML gera um <span class="error"> para cada mensagem, já escapada
+func errorsHTML(errs []string) string {
+	var b strings.Builder
+	for _, e := range errs {
+		fmt.Fprintf(&b, `<span class="error">%s</span>`, html.EscapeString(e))
+	}
+	return b.String()
+}
+
+// stringify converte qualquer valor em texto, nil vira string vazia
+func stringify(value any) string {
+	if value == nil {
+		return ""
+	}
+	return fmt.Sprint(value)
+}

@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"fmt"
+	"html"
 	"html/template"
 	"strings"
 )
@@ -12,33 +13,34 @@ type SelectInput struct {
 }
 
 func (w SelectInput) Render(name, label string, value any, errs []string) template.HTML {
-	var errHTML strings.Builder
-	for _, e := range errs {
-		fmt.Fprintf(&errHTML, `<span class="error">%s</span>`, e)
-	}
+	currentVal := stringify(value)
 
-	currentVal := fmt.Sprintf("%v", w.ParseValue(value))
-
-	var optionsHTML strings.Builder
 	placeholder := w.Placeholder
 	if placeholder == "" {
 		placeholder = "Selecione..."
 	}
-	fmt.Fprintf(&optionsHTML, `<option value="">%s</option>`, placeholder)
+
+	var optionsHTML strings.Builder
+	fmt.Fprintf(&optionsHTML, `<option value="">%s</option>`, html.EscapeString(placeholder))
 
 	for _, opt := range w.Options {
 		selected := ""
 		if currentVal != "" && currentVal == opt.Value {
 			selected = " selected"
 		}
-		fmt.Fprintf(&optionsHTML, `<option value="%s"%s>%s</option>`, opt.Value, selected, opt.Label)
+		fmt.Fprintf(&optionsHTML, `<option value="%s"%s>%s</option>`,
+			html.EscapeString(opt.Value), selected, html.EscapeString(opt.Label))
 	}
 
-	html := fmt.Sprintf(
+	return template.HTML(fmt.Sprintf(
 		`<div><label for="%s">%s</label><select id="%s" name="%s">%s</select>%s</div>`,
-		name, label, name, name, optionsHTML.String(), errHTML.String(),
-	)
-	return template.HTML(html)
+		html.EscapeString(name),
+		html.EscapeString(label),
+		html.EscapeString(name),
+		html.EscapeString(name),
+		optionsHTML.String(),
+		errorsHTML(errs),
+	))
 }
 
 func (w SelectInput) ParseValue(value any) any {

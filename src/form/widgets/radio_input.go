@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"fmt"
+	"html"
 	"html/template"
 	"strings"
 )
@@ -11,12 +12,7 @@ type RadioInput struct {
 }
 
 func (w RadioInput) Render(name, label string, value any, errs []string) template.HTML {
-	var errHTML strings.Builder
-	for _, e := range errs {
-		fmt.Fprintf(&errHTML, `<span class="error">%s</span>`, e)
-	}
-
-	currentVal := fmt.Sprintf("%v", w.ParseValue(value))
+	currentVal := stringify(value)
 
 	var radiosHTML strings.Builder
 	for i, opt := range w.Options {
@@ -28,15 +24,21 @@ func (w RadioInput) Render(name, label string, value any, errs []string) templat
 
 		fmt.Fprintf(&radiosHTML,
 			`<label for="%s"><input type="radio" id="%s" name="%s" value="%s"%s> %s</label> `,
-			radioID, radioID, name, opt.Value, checked, opt.Label,
+			html.EscapeString(radioID),
+			html.EscapeString(radioID),
+			html.EscapeString(name),
+			html.EscapeString(opt.Value),
+			checked,
+			html.EscapeString(opt.Label),
 		)
 	}
 
-	html := fmt.Sprintf(
+	return template.HTML(fmt.Sprintf(
 		`<div><label>%s</label><div class="radio-group">%s</div>%s</div>`,
-		label, radiosHTML.String(), errHTML.String(),
-	)
-	return template.HTML(html)
+		html.EscapeString(label),
+		radiosHTML.String(),
+		errorsHTML(errs),
+	))
 }
 
 func (w RadioInput) ParseValue(value any) any {
