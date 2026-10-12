@@ -18,14 +18,7 @@ type Assembler struct {
 	db           *sql.DB
 }
 
-func (a *Assembler) New(declarations []any, host string, dbname string) {
-	connection := fmt.Sprintf("host=%s dbname=%s connect_timeout=5", host, dbname)
-	fmt.Println("[*] Conectando com: ", connection)
-	db, err := sql.Open("postgres", connection)
-	if err != nil {
-		log.Fatal("[!] Erro Estabelecendo conexão com o banco: ", err)
-	}
-
+func (a *Assembler) New(declarations []any, db *sql.DB) {
 	a.db = db
 	a.declarations = declarations
 }
@@ -54,9 +47,12 @@ func (a *Assembler) Assemble() {
 			log.Fatalf("[!] Erro ao migrar tabela %q: %v", m.Table, err)
 		}
 
-		form_gerado, _ := form.New(m)
+		formGerado, err := form.New(m, form.WithAction("/"+m.Table))
+		if err != nil {
+			log.Fatalf("[!] Erro ao criar formulário de %q: %v", m.Name, err)
+		}
 
-		fmt.Fprint(&htmlCompleto, form_gerado.Render())
+		fmt.Fprint(&htmlCompleto, formGerado.Render())
 	}
 
 	fmt.Fprint(&htmlCompleto, `</body></html>`)
@@ -73,10 +69,6 @@ func (a *Assembler) Assemble() {
 	}
 
 	fmt.Printf("[*] Arquivo gerado com sucesso!\n")
-	err = a.db.Close()
-	if err != nil {
-		log.Fatal("[!] Erro fechando a conexão com o banco: ", err)
-	}
 }
 
 func (a *Assembler) migrate(m *schema.Model) error {
