@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/andre-felipe-wonsik-alves/lpORM/src/dialect"
 	"github.com/andre-felipe-wonsik-alves/lpORM/src/form"
 	"github.com/andre-felipe-wonsik-alves/lpORM/src/schema"
 	_ "github.com/lib/pq"
@@ -45,21 +46,13 @@ func (a *Assembler) Assemble() {
 	for _, element := range a.declarations {
 		m, err := schema.Parse(element)
 		if err != nil {
-			fmt.Println("Erro:", err)
+			fmt.Println("[!] Erro:", err)
 			return
 		}
 
-		// TODO: criar o schema no banco
-
-		//fmt.Printf("Model: %s  (tabela: %s)\n\n", m.Name, m.Table)
-		//for _, f := range m.Fields {
-		//	fmt.Printf("  Campo:  %s\n", f.Name)
-		//	fmt.Printf("  Coluna: %s\n", f.Column)
-		//	fmt.Printf("  Tipo:   %s\n", f.GoType)
-		//	fmt.Printf("  PK=%v  Auto=%v  Unique=%v  Size=%d\n", f.PK, f.Auto, f.Unique, f.Size)
-		//	fmt.Printf("  Form:   %v\n", f.Form)
-		//	fmt.Printf("  Rules:  %v\n\n", f.Rules)
-		//}
+		if err := a.migrate(m); err != nil {
+			log.Fatalf("[!] Erro ao migrar tabela %q: %v", m.Table, err)
+		}
 
 		form_gerado, _ := form.New(m)
 
@@ -79,9 +72,41 @@ func (a *Assembler) Assemble() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Arquivo gerado com sucesso!\n")
+	fmt.Printf("[*] Arquivo gerado com sucesso!\n")
 	err = a.db.Close()
 	if err != nil {
 		log.Fatal("[!] Erro fechando a conexão com o banco: ", err)
 	}
+}
+
+func (a *Assembler) migrate(m *schema.Model) error {
+	d := dialect.Postgres{}
+
+	var cols []string
+	for _, f := range m.Fields {
+		col := fmt.Sprintf("%s %s", d.Quote(f.Column), d.SQLType(f))
+
+		if f.PK {
+			col += " PRIMARY KEY"
+		}
+		if f.Unique && !f.PK {
+			col += " UNIQUE"
+		}
+		if !f.PK {
+			col += " NOT NULL"
+		}
+
+		cols = append(cols, "\t"+col)
+	}
+
+	ddl := fmt.Sprintf(
+		"CREATE TABLE IF NOT EXISTS %s (\n%s\n);",
+		d.Quote(m.Table),
+		strings.Join(cols, ",\n"),
+	)
+
+	fmt.Printf("[*] Executando DDL para %q:\n%s\n\n", m.Table, ddl)
+
+	_, err := a.db.Exec(ddl)
+	return err
 }
