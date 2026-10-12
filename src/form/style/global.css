@@ -1,2 +1,147 @@
-/* COLOCAR UM ESTILO AQUI NO FUTURO!!!!!!!! */
+:root {
+  /* Tema Claro */
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --border: #e2e8f0;
+  --primary: #f97316;
+  --primary-hover: #ea580c;
+  --danger: #dc2626;
+  --radius: 8px;
+}
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Tema Escuro */
+    --bg: #0f172a;
+    --card: #1e293b;
+    --text: #f8fafc;
+    --border: #334155;
+    --primary: #fb923c;
+    --primary-hover: #f97316;
+    --danger: #f87171;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 2rem 1rem;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  background: var(--bg);
+  color: var(--text);
+}
+
+h3 {
+  max-width: 480px;
+  margin: 2rem auto 0.5rem;
+}
+
+form {
+  max-width: 480px;
+  margin: 0 auto 1rem;
+  padding: 1.5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* cada campo gerado pelos widgets é um <div> filho direto do form */
+form > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+/* radio: opções lado a lado */
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.radio-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 400;
+}
+
+/* checkbox: o HTML tem <label> antes do <input>, row-reverse põe a caixa à esquerda */
+form > div:has(> input[type="checkbox"]) {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--primary);
+}
+
+.error {
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+
+button[type="submit"] {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: var(--primary);
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+button[type="submit"]:hover {
+  background: var(--primary-hover);
+}
+
+/* o card já separa os formulários, então o <hr> some */
+hr {
+  display: none;
+}

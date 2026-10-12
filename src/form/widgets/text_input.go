@@ -2,8 +2,8 @@ package widgets
 
 import (
 	"fmt"
+	"html"
 	"html/template"
-	"strings"
 )
 
 type TextInput struct {
@@ -11,16 +11,21 @@ type TextInput struct {
 }
 
 func (w TextInput) Render(name, label string, value any, errs []string) template.HTML {
-	var errHTML strings.Builder
-	for _, e := range errs {
-		fmt.Fprintf(&errHTML, `<span class="error">%s</span>`, e)
+	inputType := w.InputType
+	if inputType == "" {
+		inputType = "text"
 	}
 
-	html := fmt.Sprintf(
-		`<div><label for="%s">%s</label><input type="%s" id="%s" name="%s" value="%v">%s</div>`,
-		name, label, w.InputType, name, name, w.ParseValue(value), errHTML.String(),
-	)
-	return template.HTML(html)
+	return template.HTML(fmt.Sprintf(
+		`<div><label for="%s">%s</label><input type="%s" id="%s" name="%s" value="%s">%s</div>`,
+		html.EscapeString(name),
+		html.EscapeString(label),
+		html.EscapeString(inputType),
+		html.EscapeString(name),
+		html.EscapeString(name),
+		html.EscapeString(stringify(value)),
+		errorsHTML(errs),
+	))
 }
 
 func (w TextInput) ParseValue(value any) any {
