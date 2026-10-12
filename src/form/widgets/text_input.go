@@ -16,9 +16,14 @@ func (w TextInput) Render(name, label string, value any, errs []string) template
 		fmt.Fprintf(&errHTML, `<span class="error">%s</span>`, e)
 	}
 
+	inputType := w.InputType
+	if inputType == "" {
+		inputType = "text"
+	}
+
 	html := fmt.Sprintf(
 		`<div><label for="%s">%s</label><input type="%s" id="%s" name="%s" value="%v">%s</div>`,
-		name, label, w.InputType, name, name, w.ParseValue(value), errHTML.String(),
+		name, label, inputType, name, name, w.ParseValue(value), errHTML.String(),
 	)
 	return template.HTML(html)
 }
