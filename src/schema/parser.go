@@ -39,6 +39,8 @@ func Parse(v any) (*Model, error) {
 					switch kv[0] {
 					case "size":
 						field.Size, _ = strconv.Atoi(kv[1])
+					case "fk":
+						field.Reference = kv[1]
 					}
 				} else {
 					switch part {
