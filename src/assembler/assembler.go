@@ -3,90 +3,68 @@ package assembler
 import (
 	"database/sql"
 	"fmt"
-	"log"
-	"os"
+	"net/http"
 	"strings"
 
 	"github.com/andre-felipe-wonsik-alves/lpORM/src/dialect"
 	"github.com/andre-felipe-wonsik-alves/lpORM/src/form"
 	"github.com/andre-felipe-wonsik-alves/lpORM/src/schema"
-	_ "github.com/lib/pq"
 )
 
 type Assembler struct {
-	declarations []any
-	db           *sql.DB
+	db     *sql.DB
+	d      dialect.Dialect
+	mux    *http.ServeMux
+	models []*schema.Model
 }
 
-func (a *Assembler) New(declarations []any, host string, dbname string) {
-	connection := fmt.Sprintf("host=%s dbname=%s connect_timeout=5", host, dbname)
-	fmt.Println("[*] Conectando com: ", connection)
-	db, err := sql.Open("postgres", connection)
-	if err != nil {
-		log.Fatal("[!] Erro Estabelecendo conexão com o banco: ", err)
-	}
-
-	a.db = db
-	a.declarations = declarations
+func New(db *sql.DB) *Assembler {
+	a := &Assembler{db: db, d: dialect.Postgres{}, mux: http.NewServeMux()}
+	a.mux.HandleFunc("/", a.index)
+	return a
 }
 
-func (a *Assembler) Assemble() {
-	var htmlCompleto strings.Builder
-	fmt.Fprintf(&htmlCompleto, `
-	<!DOCTYPE html>
-		<html lang="pt-BR">
-		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<title>Minha página</title>
-			<style>%s</style>
-		</head>
-		<body>`,
-		form.CSS(),
-	)
+// returns the router with every route registered
+func (a *Assembler) Handler() http.Handler {
+	return a.mux
+}
 
-	for _, element := range a.declarations {
-		m, err := schema.Parse(element)
-		if err != nil {
-			fmt.Println("[!] Erro:", err)
-			return
-		}
-
-		if err := a.migrate(m); err != nil {
-			log.Fatalf("[!] Erro ao migrar tabela %q: %v", m.Table, err)
-		}
-
-		form_gerado, _ := form.New(m)
-
-		fmt.Fprint(&htmlCompleto, form_gerado.Render())
+// returns the index page; rebuilt every time
+func (a *Assembler) index(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
 	}
 
-	fmt.Fprint(&htmlCompleto, `</body></html>`)
-
-	outputDir := "./out"
-
-	if err := os.MkdirAll(outputDir, 0o755); err != nil {
-		log.Fatalf("Erro ao criar o diretório: %v", err)
+	var links strings.Builder
+	for _, m := range a.models {
+		fmt.Fprintf(&links, `<li><a href="/%s">%s</a></li>`, m.Table, m.Name)
 	}
 
-	err := os.WriteFile("./out/FORM.html", []byte(htmlCompleto.String()), 0o644)
-	if err != nil {
-		log.Fatal(err)
-	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprint(w, page("Formulários", "<h1>Formulários</h1><ul>"+links.String()+"</ul>"))
+}
 
-	fmt.Printf("[*] Arquivo gerado com sucesso!\n")
-	err = a.db.Close()
-	if err != nil {
-		log.Fatal("[!] Erro fechando a conexão com o banco: ", err)
-	}
+// common page layout
+func page(title, body string) string {
+	return fmt.Sprintf(
+		`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>%s</title>
+	<style>%s</style>
+</head>
+<body>%s</body>
+</html>`,
+		title, form.CSS(), body)
 }
 
 func (a *Assembler) migrate(m *schema.Model) error {
-	d := dialect.Postgres{}
-
 	var cols []string
 	for _, f := range m.Fields {
-		col := fmt.Sprintf("%s %s", d.Quote(f.Column), d.SQLType(f))
+		col := fmt.Sprintf("%s %s", a.d.Quote(f.Column), a.d.SQLType(f))
 
 		if f.PK {
 			col += " PRIMARY KEY"
@@ -103,7 +81,7 @@ func (a *Assembler) migrate(m *schema.Model) error {
 
 	ddl := fmt.Sprintf(
 		"CREATE TABLE IF NOT EXISTS %s (\n%s\n);",
-		d.Quote(m.Table),
+		a.d.Quote(m.Table),
 		strings.Join(cols, ",\n"),
 	)
 
