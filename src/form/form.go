@@ -3,6 +3,7 @@ package form
 import (
 	"fmt"
 	"html/template"
+	"reflect"
 	"strings"
 
 	"github.com/andre-felipe-wonsik-alves/lpORM/src/form/widgets"
@@ -18,8 +19,17 @@ type Form struct {
 	method string
 }
 
-func New(model *schema.Model, opts ...any) (*Form, error) {
-	f := &Form{Model: model, Values: map[string]any{}, Errors: map[string][]string{}}
+func New(model *schema.Model, opts ...Option) (*Form, error) {
+	f := &Form{
+		Model:  model,
+		Values: map[string]any{},
+		Errors: map[string][]string{},
+		method: "POST",
+	}
+
+	for _, opt := range opts {
+		opt(f)
+	}
 
 	return f, nil
 }
@@ -32,7 +42,7 @@ func (f *Form) Render() template.HTML {
 		w := resolveWidget(field)
 
 		if w == nil {
-			continue // widget ainda não implementado
+			continue
 		}
 
 		label := field.Form["label"]
@@ -49,16 +59,53 @@ func (f *Form) Render() template.HTML {
 }
 
 func resolveWidget(f schema.Field) widgets.Widgets {
-	switch f.Form["type"] {
+	// Se for chave primária com auto incremento, renderiza como campo oculto
+	if f.PK && f.Auto {
+		return widgets.HiddenInput{}
+	}
+
+	formType := ""
+	if f.Form != nil {
+		formType = f.Form["type"]
+	}
+
+	switch formType {
 	case "checkbox":
-		println("[*] Processando input do tipo checkbox")
-		return widgets.CheckboxInput{InputType: f.Form["type"]}
+		return widgets.CheckboxInput{InputType: "checkbox"}
 	case "select":
-		// TODO return widgets.SelectInput{Options: opts}
-		println("[!] Select não implementado!")
-		return nil
+		return widgets.SelectInput{Options: widgets.ParseOptions(f.Form["options"])}
+	case "radio":
+		return widgets.RadioInput{Options: widgets.ParseOptions(f.Form["options"])}
+	case "textarea":
+		return widgets.TextareaInput{}
+	case "hidden":
+		return widgets.HiddenInput{}
+	case "password":
+		return widgets.TextInput{InputType: "password"}
+	case "email":
+		return widgets.TextInput{InputType: "email"}
+	case "date":
+		return widgets.TextInput{InputType: "date"}
+	case "number":
+		return widgets.TextInput{InputType: "number"}
+	case "text":
+		return widgets.TextInput{InputType: "text"}
+	case "":
+		// Se não foi especificado tipo de formulário, infere a partir do tipo Go
+		if f.GoType != nil {
+			switch f.GoType.Kind() {
+			case reflect.Bool:
+				return widgets.CheckboxInput{InputType: "checkbox"}
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+				reflect.Float32, reflect.Float64:
+				return widgets.TextInput{InputType: "number"}
+			default:
+				return widgets.TextInput{InputType: "text"}
+			}
+		}
+		return widgets.TextInput{InputType: "text"}
 	default:
-		println("[*] Processando input do tipo texto")
-		return widgets.TextInput{InputType: f.Form["type"]}
+		return widgets.TextInput{InputType: formType}
 	}
 }

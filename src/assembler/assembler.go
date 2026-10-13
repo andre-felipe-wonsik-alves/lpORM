@@ -32,15 +32,17 @@ func (a *Assembler) New(declarations []any, host string, dbname string) {
 
 func (a *Assembler) Assemble() {
 	var htmlCompleto strings.Builder
-	fmt.Fprint(&htmlCompleto, `
+	fmt.Fprintf(&htmlCompleto, `
 	<!DOCTYPE html>
 		<html lang="pt-BR">
 		<head>
 			<meta charset="UTF-8">
 			<meta name="viewport" content="width=device-width, initial-scale=1.0">
 			<title>Minha página</title>
+			<style>%s</style>
 		</head>
 		<body>`,
+		form.CSS(),
 	)
 
 	for _, element := range a.declarations {
