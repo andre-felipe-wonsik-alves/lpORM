@@ -31,7 +31,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := assembler.Register[input.Cliente](app); err != nil {
+	if err := assembler.Register[input.Job](app); err != nil {
 		log.Fatal(err)
 	}
 
