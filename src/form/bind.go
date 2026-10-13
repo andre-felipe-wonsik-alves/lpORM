@@ -11,14 +11,15 @@ import (
 )
 
 // reads form fields and converts them to the approriate type in Go
-func Bind[T any](r *http.Request, m *schema.Model) (*T, map[string][]string) {
-	errs := map[string][]string{}
+func Bind[T any](r *http.Request, m *schema.Model) (*T, error) {
 	if err := r.ParseForm(); err != nil {
-		errs["_form"] = []string{err.Error()}
-		return nil, errs
+		return nil, err
 	}
 
+	// create empty T struct
 	out := new(T)
+
+	// get the struct
 	v := reflect.ValueOf(out).Elem()
 
 	for _, f := range m.Fields {
@@ -26,33 +27,28 @@ func Bind[T any](r *http.Request, m *schema.Model) (*T, map[string][]string) {
 			continue
 		}
 
-		raw := r.PostForm.Get(f.Name)
-		fv := v.FieldByName(f.Name)
+		// use the form value to get the ocrresponding struct field
+		fv := r.PostForm.Get(f.Name)
+		sf := v.FieldByName(f.Name)
 
-		if err := setValue(fv, raw, r.PostForm.Has(f.Name)); err != nil {
-			errs[f.Name] = append(errs[f.Name], err.Error())
+		if err := setValue(sf, fv, r.PostForm.Has(f.Name)); err != nil {
 			continue
 		}
-	}
-
-	if len(errs) > 0 {
-		return nil, errs
 	}
 
 	return out, nil
 }
 
-// casts the value to the appropriate Go type
-func setValue(fv reflect.Value, raw string, present bool) error {
-	s := strings.TrimSpace(raw)
+// parses the value received in the form (fv) to the struct field (sf)
+func setValue(sf reflect.Value, fv string, present bool) error {
+	s := strings.TrimSpace(fv)
 
-	switch fv.Kind() {
+	switch sf.Kind() {
 	case reflect.String:
-		fv.SetString(raw)
+		sf.SetString(fv)
 
 	case reflect.Bool:
-		// checkbox not sent if unset
-		fv.SetBool(present && raw != "false" && raw != "0")
+		sf.SetBool(present && fv != "false" && fv != "0")
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if s == "" {
@@ -60,10 +56,11 @@ func setValue(fv reflect.Value, raw string, present bool) error {
 		}
 
 		n, err := strconv.ParseInt(s, 10, 64)
-		if err != nil || fv.OverflowInt(n) {
+		if err != nil {
 			return fmt.Errorf("número inteiro inválido")
 		}
-		fv.SetInt(n)
+
+		sf.SetInt(n)
 
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		if s == "" {
@@ -71,11 +68,11 @@ func setValue(fv reflect.Value, raw string, present bool) error {
 		}
 
 		n, err := strconv.ParseUint(s, 10, 64)
-		if err != nil || fv.OverflowUint(n) {
+		if err != nil {
 			return fmt.Errorf("número inteiro inválido")
 		}
 
-		fv.SetUint(n)
+		sf.SetUint(n)
 
 	case reflect.Float32, reflect.Float64:
 		if s == "" {
@@ -83,14 +80,14 @@ func setValue(fv reflect.Value, raw string, present bool) error {
 		}
 
 		n, err := strconv.ParseFloat(s, 64)
-		if err != nil || fv.OverflowFloat(n) {
+		if err != nil {
 			return fmt.Errorf("número inválido")
 		}
 
-		fv.SetFloat(n)
+		sf.SetFloat(n)
 
 	default:
-		return fmt.Errorf("tipo %s não suportado", fv.Type())
+		return fmt.Errorf("tipo %s não suportado", sf.Type())
 	}
 
 	return nil
