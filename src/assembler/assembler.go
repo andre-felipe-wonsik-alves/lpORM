@@ -24,7 +24,65 @@ func New(db *sql.DB) *Assembler {
 	return a
 }
 
-// returns the router with every route registered
+func (a *Assembler) migrate(m *schema.Model) error {
+	var cols []string
+	var fks []string
+	var pks []string
+
+	for _, f := range m.Fields {
+		if f.PK {
+			pks = append(pks, a.d.Quote(f.Column))
+		}
+	}
+
+	compositeKey := len(pks) > 1
+
+	for _, f := range m.Fields {
+		col := fmt.Sprintf("%s %s", a.d.Quote(f.Column), a.d.SQLType(f))
+
+		if f.PK && !compositeKey {
+			col += " PRIMARY KEY"
+		}
+
+		if f.Unique && !f.PK {
+			col += " UNIQUE"
+		}
+
+		if !f.PK {
+			col += " NOT NULL"
+		}
+
+		cols = append(cols, "\t"+col)
+		if f.Reference != "" {
+			refTokens := strings.Split(f.Reference, ".")
+			fks = append(fks, fmt.Sprintf("\tFOREIGN KEY (%s) REFERENCES %s (%s)", a.d.Quote(f.Column), a.d.Quote(refTokens[0]), a.d.Quote(refTokens[1])))
+		}
+	}
+
+	if compositeKey {
+		cols = append(cols, "\tPRIMARY KEY ("+strings.Join(pks, ", ")+")")
+	}
+
+	for _, fk := range fks {
+		cols = append(cols, fk)
+	}
+
+	ddl := fmt.Sprintf(
+		"CREATE TABLE IF NOT EXISTS %s (\n%s\n)",
+		a.d.Quote(m.Table),
+		strings.Join(cols, ",\n"),
+	)
+
+	fmt.Printf("[*] Executando DDL para %q:\n%s\n\n", m.Table, ddl)
+
+	if _, err := a.db.Exec(ddl); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// returns the router with every registered route
 func (a *Assembler) Handler() http.Handler {
 	return a.mux
 }
@@ -59,105 +117,4 @@ func page(title, body string) string {
 <body>%s</body>
 </html>`,
 		title, form.CSS(), body)
-}
-
-func (a *Assembler) migrate(m *schema.Model) error {
-	var cols []string
-	var foreign_keys []schema.Field
-	var associations []schema.Field
-	var pk schema.Field
-
-	for i, f := range m.Fields {
-		col := fmt.Sprintf("%s %s", a.d.Quote(f.Column), a.d.SQLType(f))
-
-		if f.PK {
-			pk = m.Fields[i]
-			col += " PRIMARY KEY"
-		}
-		if f.Reference != "" {
-			foreign_keys = append(foreign_keys, f)
-		}
-		if f.Association != "" {
-			associations = append(associations, f)
-		}
-		if f.Unique && !f.PK {
-			col += " UNIQUE"
-		}
-		if !f.PK {
-			col += " NOT NULL"
-		}
-
-		cols = append(cols, "\t"+col)
-	}
-
-	ddl := fmt.Sprintf(
-		"CREATE TABLE IF NOT EXISTS %s (\n%s",
-		a.d.Quote(m.Table),
-		strings.Join(cols, ",\n"),
-	)
-
-	for _, entry := range foreign_keys {
-		references := strings.Split(entry.Reference, ".")
-		ddl += fmt.Sprintf(",\n\tFOREIGN KEY (%s)\n\t\tREFERENCES %s (%s)\n", a.d.Quote(entry.Column), references[0], references[1])
-	}
-	ddl += ");"
-
-	fmt.Printf("[*] Executando DDL para %q:\n%s\n\n", m.Table, ddl)
-
-	if _, err := a.db.Exec(ddl); err != nil {
-		return err
-	}
-
-	for _, ass := range associations {
-		assDdl, err := a.createAssociation(m, pk, ass)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("[*] Executando DDL para %q:\n%s\n\n", m.Table, assDdl)
-
-		if _, err := a.db.Exec(ddl); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (a *Assembler) createAssociation(m *schema.Model, pk schema.Field, ass schema.Field) (string, error) {
-	otherReference := strings.Split(ass.Association, ".")
-	otherTable := otherReference[0]
-	otherColumn := otherReference[1]
-	var other schema.Field
-
-	for _, m := range a.models {
-		if m.Table != otherReference[0] {
-			continue
-		}
-
-		for i := range m.Fields {
-			if m.Fields[i].Column == otherReference[1] {
-				other = m.Fields[i]
-			}
-		}
-	}
-
-	thisCol := m.Table + "_" + pk.Column
-	otherCol := otherTable + "_" + otherColumn
-
-	cols := []string{
-		fmt.Sprintf("\t%s %s NOT NULL", a.d.Quote(thisCol), a.d.SQLType(pk)),
-		fmt.Sprintf("\t%s %s NOT NULL", a.d.Quote(otherCol), a.d.SQLType(other)),
-		fmt.Sprintf("\tPRIMARY KEY (%s, %s)", a.d.Quote(thisCol), a.d.Quote(otherCol)),
-		fmt.Sprintf("\tFOREIGN KEY (%s) REFERENCES %s (%s)", a.d.Quote(thisCol), a.d.Quote(m.Table), a.d.Quote(pk.Column)),
-		fmt.Sprintf("\tFOREIGN KEY (%s) REFERENCES %s (%s)", a.d.Quote(otherCol), a.d.Quote(otherTable), a.d.Quote(otherColumn)),
-	}
-
-	ddl := fmt.Sprintf(
-		"CREATE TABLE IF NOT EXISTS %s (\n%s\n);",
-		a.d.Quote(m.Table+"_"+otherReference[0]),
-		strings.Join(cols, ",\n"),
-	)
-
-	return ddl, nil
 }
