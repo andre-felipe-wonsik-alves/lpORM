@@ -63,11 +63,15 @@ func page(title, body string) string {
 
 func (a *Assembler) migrate(m *schema.Model) error {
 	var cols []string
+	var foreign_keys []schema.Field
 	for _, f := range m.Fields {
 		col := fmt.Sprintf("%s %s", a.d.Quote(f.Column), a.d.SQLType(f))
 
 		if f.PK {
 			col += " PRIMARY KEY"
+		}
+		if f.Reference != "" {
+			foreign_keys = append(foreign_keys, f)
 		}
 		if f.Unique && !f.PK {
 			col += " UNIQUE"
@@ -80,10 +84,16 @@ func (a *Assembler) migrate(m *schema.Model) error {
 	}
 
 	ddl := fmt.Sprintf(
-		"CREATE TABLE IF NOT EXISTS %s (\n%s\n);",
+		"CREATE TABLE IF NOT EXISTS %s (\n%s",
 		a.d.Quote(m.Table),
 		strings.Join(cols, ",\n"),
 	)
+
+	for _, entry := range foreign_keys {
+		references := strings.Split(entry.Reference, ".")
+		ddl += fmt.Sprintf(",\n\tFOREIGN KEY (%s)\n\t\tREFERENCES %s (%s)\n", a.d.Quote(entry.Column), references[0], references[1])
+	}
+	ddl += ");"
 
 	fmt.Printf("[*] Executando DDL para %q:\n%s\n\n", m.Table, ddl)
 

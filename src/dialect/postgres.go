@@ -14,7 +14,7 @@ func (Postgres) Quote(ident string) string {
 }
 
 func (Postgres) SQLType(f schema.Field) string {
-	if f.PK && f.Auto {
+	if f.Auto {
 		return "BIGSERIAL"
 	}
 

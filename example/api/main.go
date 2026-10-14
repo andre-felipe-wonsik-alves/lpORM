@@ -35,6 +35,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := assembler.Register[input.Car](app); err != nil {
+		log.Fatal(err)
+	}
+
 	fmt.Println("[*] Servidor em http://localhost:8080/")
 	log.Fatal(http.ListenAndServe(":8080", app.Handler()))
 }
