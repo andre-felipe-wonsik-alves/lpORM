@@ -70,6 +70,11 @@ func Parse(v any) (*Model, error) {
 			field.Rules = strings.Split(raw, ",")
 		}
 
+		if field.Association != "" {
+			model.Associations = append(model.Associations, field)
+			continue
+		}
+
 		model.Fields = append(model.Fields, field)
 	}
 

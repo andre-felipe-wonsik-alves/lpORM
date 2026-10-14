@@ -17,7 +17,8 @@ type Field struct {
 }
 
 type Model struct {
-	Name   string
-	Table  string
-	Fields []Field
+	Name         string
+	Table        string
+	Fields       []Field
+	Associations []Field
 }
