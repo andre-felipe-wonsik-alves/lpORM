@@ -28,7 +28,7 @@ func NewRepository[T any](db *sql.DB, d dialect.Dialect) (Repository[T], error) 
 
 	r := &repository[T]{db: db, model: model}
 
-	var cols, phs []string
+	var cols, values []string
 	for _, f := range model.Fields {
 		if f.Auto {
 			continue
@@ -36,11 +36,11 @@ func NewRepository[T any](db *sql.DB, d dialect.Dialect) (Repository[T], error) 
 
 		r.fields = append(r.fields, f.Name)
 		cols = append(cols, d.Quote(f.Column))
-		phs = append(phs, fmt.Sprintf("$%d", len(r.fields))) // psotgres uses "$" to represent a value in VALUES(...)
+		values = append(values, fmt.Sprintf("$%d", len(r.fields))) // psotgres uses "$" to represent a value in VALUES(...)
 	}
 
 	r.query = fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		d.Quote(model.Table), strings.Join(cols, ", "), strings.Join(phs, ", "))
+		d.Quote(model.Table), strings.Join(cols, ", "), strings.Join(values, ", "))
 
 	return r, nil
 }

@@ -10,13 +10,15 @@ type Field struct {
 	GoType           reflect.Type
 	PK, Auto, Unique bool
 	Reference        string
+	Association      string
 	Size             int
 	Form             map[string]string // opções de formulário (label, type, options)
 	Rules            []string
 }
 
 type Model struct {
-	Name   string
-	Table  string
-	Fields []Field
+	Name         string
+	Table        string
+	Fields       []Field
+	Associations []Field
 }

@@ -22,6 +22,15 @@ func Register[T any](a *Assembler) error {
 		return err
 	}
 
+	repo, err := repository.NewRepository[T](a.db, a.d)
+	if err != nil {
+		return err
+	}
+
+	return a.registerModel(model, insertHandler(model, repo))
+}
+
+func (a *Assembler) registerModel(model *schema.Model, post http.HandlerFunc) error {
 	for _, m := range a.models {
 		if m.Table == model.Table {
 			return fmt.Errorf("assembler: %s já foi adicionado", model.Name)
@@ -33,12 +42,7 @@ func Register[T any](a *Assembler) error {
 		return fmt.Errorf("assembler: migrar %q: %w", model.Table, err)
 	}
 
-	repo, err := repository.NewRepository[T](a.db, a.d)
-	if err != nil {
-		return err
-	}
-
-	// create route with the same name as T
+	// create route with the same name as the table
 	route := "/" + model.Table
 
 	f, err := form.New(model, form.WithAction(route))
@@ -46,15 +50,14 @@ func Register[T any](a *Assembler) error {
 		return err
 	}
 
-	// build page for T
+	// build page for the model
 	html := page(model.Name, string(f.Render()))
 
 	if err := writePage(model.Table, html); err != nil {
 		return err
 	}
 
-	// handelrs for page T
-	handler := insertHandler(model, repo)
+	// handlers for the page
 	a.mux.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -62,7 +65,7 @@ func Register[T any](a *Assembler) error {
 			fmt.Fprint(w, html)
 
 		case http.MethodPost:
-			handler(w, r)
+			post(w, r)
 
 		default:
 			http.Error(w, "método não permitido", http.StatusMethodNotAllowed)
@@ -70,6 +73,14 @@ func Register[T any](a *Assembler) error {
 	})
 
 	a.models = append(a.models, model)
+
+	// each n-n field gets its own table, form and handler
+	for _, assoc := range model.Associations {
+		if err := a.registerAssociation(model, assoc); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

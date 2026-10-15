@@ -24,7 +24,65 @@ func New(db *sql.DB) *Assembler {
 	return a
 }
 
-// returns the router with every route registered
+func (a *Assembler) migrate(m *schema.Model) error {
+	var cols []string
+	var fks []string
+	var pks []string
+
+	for _, f := range m.Fields {
+		if f.PK {
+			pks = append(pks, a.d.Quote(f.Column))
+		}
+	}
+
+	compositeKey := len(pks) > 1
+
+	for _, f := range m.Fields {
+		col := fmt.Sprintf("%s %s", a.d.Quote(f.Column), a.d.SQLType(f))
+
+		if f.PK && !compositeKey {
+			col += " PRIMARY KEY"
+		}
+
+		if f.Unique && !f.PK {
+			col += " UNIQUE"
+		}
+
+		if !f.PK {
+			col += " NOT NULL"
+		}
+
+		cols = append(cols, "\t"+col)
+		if f.Reference != "" {
+			refTokens := strings.Split(f.Reference, ".")
+			fks = append(fks, fmt.Sprintf("\tFOREIGN KEY (%s) REFERENCES %s (%s)", a.d.Quote(f.Column), a.d.Quote(refTokens[0]), a.d.Quote(refTokens[1])))
+		}
+	}
+
+	if compositeKey {
+		cols = append(cols, "\tPRIMARY KEY ("+strings.Join(pks, ", ")+")")
+	}
+
+	for _, fk := range fks {
+		cols = append(cols, fk)
+	}
+
+	ddl := fmt.Sprintf(
+		"CREATE TABLE IF NOT EXISTS %s (\n%s\n)",
+		a.d.Quote(m.Table),
+		strings.Join(cols, ",\n"),
+	)
+
+	fmt.Printf("[*] Executando DDL para %q:\n%s\n\n", m.Table, ddl)
+
+	if _, err := a.db.Exec(ddl); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// returns the router with every registered route
 func (a *Assembler) Handler() http.Handler {
 	return a.mux
 }
@@ -59,44 +117,4 @@ func page(title, body string) string {
 <body>%s</body>
 </html>`,
 		title, form.CSS(), body)
-}
-
-func (a *Assembler) migrate(m *schema.Model) error {
-	var cols []string
-	var foreign_keys []schema.Field
-	for _, f := range m.Fields {
-		col := fmt.Sprintf("%s %s", a.d.Quote(f.Column), a.d.SQLType(f))
-
-		if f.PK {
-			col += " PRIMARY KEY"
-		}
-		if f.Reference != "" {
-			foreign_keys = append(foreign_keys, f)
-		}
-		if f.Unique && !f.PK {
-			col += " UNIQUE"
-		}
-		if !f.PK {
-			col += " NOT NULL"
-		}
-
-		cols = append(cols, "\t"+col)
-	}
-
-	ddl := fmt.Sprintf(
-		"CREATE TABLE IF NOT EXISTS %s (\n%s",
-		a.d.Quote(m.Table),
-		strings.Join(cols, ",\n"),
-	)
-
-	for _, entry := range foreign_keys {
-		references := strings.Split(entry.Reference, ".")
-		ddl += fmt.Sprintf(",\n\tFOREIGN KEY (%s)\n\t\tREFERENCES %s (%s)\n", a.d.Quote(entry.Column), references[0], references[1])
-	}
-	ddl += ");"
-
-	fmt.Printf("[*] Executando DDL para %q:\n%s\n\n", m.Table, ddl)
-
-	_, err := a.db.Exec(ddl)
-	return err
 }

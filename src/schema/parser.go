@@ -41,6 +41,8 @@ func Parse(v any) (*Model, error) {
 						field.Size, _ = strconv.Atoi(kv[1])
 					case "fk":
 						field.Reference = kv[1]
+					case "n-n":
+						field.Association = kv[1]
 					}
 				} else {
 					switch part {
@@ -66,6 +68,11 @@ func Parse(v any) (*Model, error) {
 
 		if raw := sf.Tag.Get("validate"); raw != "" {
 			field.Rules = strings.Split(raw, ",")
+		}
+
+		if field.Association != "" {
+			model.Associations = append(model.Associations, field)
+			continue
 		}
 
 		model.Fields = append(model.Fields, field)
