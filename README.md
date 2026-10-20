@@ -16,6 +16,35 @@ type Cliente struct {
 }
 ```
 
+## Exemplo de uso
+
+Em um terminal, execute:
+
+```bash
+go run example/api/main.go
+```
+Em seguida, acesse o servidor em `http://localhost:8080`
+
+Acesse um formulário e preencha-o.
+
+Acesse o banco de dados:
+
+```bash
+docker exec -it postgres psql -U user -d appdb
+```
+
+Verifique as relações adicionadas:
+
+```bash
+\d 
+```
+
+Verifique a instância de uma relação:
+
+```bash
+SELECT * FROM <relation_name>;
+```
+
 ### Marcadores existentes
 - `lporm`: opções de configuração para o Banco de Dados
   - Argumentos: `pk`, `auto`, `size`, `unique`

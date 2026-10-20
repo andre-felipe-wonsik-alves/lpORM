@@ -14,10 +14,11 @@ import (
 
 const outputDir = "./out"
 
-// register table T on Assembler instance so the corresponding HTML form is created and linked to index.html
+// register table T on Assembler instance so
+// the corresponding HTML form is created and linked to index.html
 func Register[T any](a *Assembler) error {
-	var zero T
-	model, err := schema.Parse(zero)
+	var s T
+	model, err := schema.Parse(s)
 	if err != nil {
 		return err
 	}
@@ -84,8 +85,9 @@ func (a *Assembler) registerModel(model *schema.Model, post http.HandlerFunc) er
 	return nil
 }
 
-// returns a handler for POST /T
-func insertHandler[T any](model *schema.Model, repo repository.Repository[T]) http.HandlerFunc {
+// returns a handler for POST for T
+func insertHandler[T any](model *schema.Model,
+	repo repository.Repository[T]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s, err := form.Bind[T](r, model)
 		if err != nil {
@@ -97,8 +99,8 @@ func insertHandler[T any](model *schema.Model, repo repository.Repository[T]) ht
 
 		if err := repo.Create(r.Context(), s); err != nil {
 			log.Printf("[!] insert em %s: %v", model.Table, err)
-			// debgu
-			http.Error(w, "erro ao salvar: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "erro ao salvar: "+err.Error(),
+				http.StatusInternalServerError)
 			return
 		}
 

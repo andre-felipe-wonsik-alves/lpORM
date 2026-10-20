@@ -10,24 +10,24 @@ import (
 	"github.com/andre-felipe-wonsik-alves/lpORM/src/schema"
 )
 
-// reads form fields and converts them to the approriate type in Go
+// reads form fields and builds a struct T instance with the approriate types in Go
 func Bind[T any](r *http.Request, m *schema.Model) (*T, error) {
 	if err := r.ParseForm(); err != nil {
 		return nil, err
 	}
 
-	// create empty T struct
-	out := new(T)
+	// create empyt T struct
+	s := new(T)
 
 	// get the struct
-	v := reflect.ValueOf(out).Elem()
+	v := reflect.ValueOf(s).Elem()
 
 	for _, f := range m.Fields {
 		if f.Auto {
 			continue
 		}
 
-		// use the form value to get the ocrresponding struct field
+		// set the current struct field to the form value in the request
 		fv := r.PostForm.Get(f.Name)
 		sf := v.FieldByName(f.Name)
 
@@ -36,7 +36,7 @@ func Bind[T any](r *http.Request, m *schema.Model) (*T, error) {
 		}
 	}
 
-	return out, nil
+	return s, nil
 }
 
 // parses the value received in the form (fv) to the struct field (sf)
